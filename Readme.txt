@@ -1,71 +1,72 @@
+ River Raid (C++ OOP Arcade Game)
+A modern C++ recreation of the classic 1982 Atari game River Raid, built from scratch using the CMU Graphics Library. This project heavily emphasizes Object-Oriented Programming (OOP) principles, including polymorphism, inheritance, encapsulation, and dynamic memory management.
 
-Documentation for the CMUgraphics package is found in Manual.txt.
+C++OOPCMU Graphics
 
-Release notes for Version 1.2 of the package
---------------------------------------------
-Due to some name conflicts, graphics.h has been renamed to CMUgraphics.h
-(and graphics.cpp, CMUgraphics.cpp)
+ Gameplay Features
+Dynamic Difficulty: Enemy spawn rates and movement speeds scale dynamically based on the player's current score.
+Fuel Management: The player must continuously collect fuel tanks to prevent crashing. Fuel drains over time, adding strategic depth.
+Save/Load System: Full game state persistence. Players can save their progress (plane position, score, active enemies, bullets) to a text file and load it later.
+Collision Detection: Custom bounding-box collision algorithms for bullets, enemies, fuel, and the player.
+Interactive UI: A custom toolbar and status bar rendering system displaying live score, speed, lives, and fuel levels.
+ Object-Oriented Architecture
+This project was designed with a strict OOP methodology to ensure modularity, scalability, and clean code.
 
-Some constants have been renamed (from version 1.1):
+1. Inheritance & Polymorphism
+The game entities are structured using a robust class hierarchy. All drawable elements inherit from base classes, allowing the game loop to manage them generically.
 
-	L_CLICK -> LEFT_CLICK
-	R_CLICK -> RIGHT_CLICK
-	LEFT    -> LEFT_BUTTON
-	RIGHT   -> RIGHT_BUTTON
+Drawable / GameObject (Base Classes): Define core properties (position, dimensions, colors) and virtual methods like draw(), move(), and collisionAction().
+Enemy (Abstract Base Class): Inherits from GameObject. Defines the interface for all hostile entities.
+Jets: Fast-moving aerial enemies.
+Tanker: Slow, high-value ground targets.
+helicopter: Erratic movement patterns.
+Bridge: Static structural targets.
+Plane & Bullet & Fuel: Specialized derived classes for the player, projectiles, and collectibles.
+Polymorphism in action: The Game class stores all enemies in a std::vector<Enemy*>. By overriding the virtual move() and draw() methods, the game loop can update all different enemy types with a single, clean loop without knowing their specific concrete types.
 
-Also, the default destructor behavior of the window object has 
-changed.  If a window is the last window object on screen, it 
-will now not disappear until the mouse has been clicked in the 
-window.  This behavior can be changed using the SetWaitClose 
-function described in "Manual.txt".
+2. Encapsulation
+Game state is heavily encapsulated. The Game class acts as the central controller. Variables like score, fuelGauge, gameSpeed, and entity vectors (bullets, enemies, fuels) are kept private/protected. External classes interact with these states strictly through controlled public getter/setter methods (e.g., getscore(), UpdateScore(), addBullet(), setIsMoving()).
 
-With this release, the source for each compiler is the same; 
-compiler differences are resolved in the file version.h.
-An example of the use of this file is if you're using
-Metrowerks version 3, you need to uncomment the following #define 
-	#define __MW_CODEWARRIOR3__
-and comment out this one
-	#define __MW_CODEWARRIOR4__
+3. Memory Management & RAII
+Because entities are spawned and destroyed continuously, memory management was a critical focus:
 
+Dynamic allocation (new) is used for spawning enemies, bullets, and fuel.
+The Game destructor (~Game()) ensures all heap memory is properly deallocated to prevent memory leaks.
+Entities that move off-screen or are destroyed are safely removed from vectors using std::find and erase, followed by delete to free memory immediately.
+ Core Systems (Code Highlights)
+Dynamic Enemy Spawner
+The game scales difficulty automatically without hardcoding levels. It modifies spawn cooldowns and maximum speeds based on player points.
 
-Some other notes on using the package follow:
----------------------------------------
+void Game::generate_enemys(int level) {    // Difficulty scales with score    spawnTimer = 3.0f - (points * 0.002f);    if (spawnTimer < 0.5f) spawnTimer = 0.5f;    float currentSpeed = enemySpeed + (points * 0.005f);    if (currentSpeed > 8.0f) currentSpeed = 8.0f;    // Polymorphic enemy generation    int type = rand() % 4;    switch (type) {        case 0: pE = new Jets(this, pos, 100, 50, RED, BLACK); break;        case 1: pE = new Tanker(this, pos, 80, 60, BLUE, WHITE); break;        // ...    }    pE->setSpeed(currentSpeed);    enemies.push_back(pE);}
+Serialization (Save/Load)
+Custom file I/O logic parses game state into a structured text format.
 
-Demo.cpp is included in the source code for the project and exercises
-virtually all of the member functions in the CMUgraphics package.  Also
-included in the graphics folder is House.cpp which is more emblematic of a
-first assignment's solution.  In Metrowerks CodeWarrior, to compile
-House.cpp instead of Demo.cpp, drag it into the project window and remove
-Demo.cpp from the project.  In Microsoft Visual C++, remove Demo.cpp from
-the project and then go to the Project menu and select the "Add to Project"
-submenu and finally select files.  Then use the standard file dialog to
-locate and add House.cpp.  In Borland, drag House.cpp into the project
-window and remove Demo.cpp from the project.
+cpp
 
-------------------------------------------------------------------------------
+void Game::saveGame(string filename) {
+    fstream outFile("IO files\\" + filename + ".txt", ios::out);
+    outFile << "PLANE " << planePos.x << " " << planePos.y << endl;
+    outFile << "SCORE " << score << endl;
+    outFile << "BULLETS " << bullets.size() << endl;
+    // ... iterates through vectors to save entity states
+}
+ How to Compile and Run
+Prerequisites
+Windows OS (Required for the CMU Graphics Library)
+Visual Studio (2019 or 2022 recommended)
+The CMUgraphicsLib folder must be included in the project directory.
+Installation
+Clone the repository:
+bash
 
-The demo makes use of an ostringstream which is fairly new to the C++
-Standard and supersedes the older ostrstream.  If your compiler does not
-support ostringstreams, e.g., it complains about the #include <sstream>
-statement or the declaration of the ostringstream, you should do the following:
-
-replace
-        #include <sstream>
-with
-        #include <strstream.h>
-
-and replace every declaration of output (there are five)
-        ostringstream output;
-with
-        ostrstream output;
-
-------------------------------------------------------------------------------
-
-Notes for Borland users:  the library and include paths are currently set to
-c:\bc5\lib and c:\bc5\include.  If your standard libraries are located in a 
-different directory, you will have to right-click the top-level project node,
-select Edit Local Options and change the paths appropriately.
-
-Once you compile the project, you'll notice many warnings are generated.  All
-can be safely ignored; if you figure out how to suppress them, send mail to
-mjs@cs.cmu.edu.
+git clone https://github.com/mennatullahmahmoud06-del/River-Raid-Game.git
+Open graphics_prj.sln in Visual Studio.
+Ensure the configuration is set to x86 or Win32 (depending on your VS setup).
+Build the solution (Ctrl + Shift + B).
+Run the executable or start without debugging (Ctrl + F5).
+ Controls
+Move: Arrow Keys (Left/Right/Up/Down)
+Shoot: Spacebar
+Pause/Resume: Use the in-game Toolbar buttons
+Save/Load: Use the Toolbar icons to write/read game state.
+Developed by Mennatullah Mahmoud as a university project demonstrating advanced C++ and Object-Oriented Design.
